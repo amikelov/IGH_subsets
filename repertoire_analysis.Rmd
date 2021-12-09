@@ -1,7 +1,9 @@
 ---
-title: "Memory persistence and positively selected transition to antibody-secreting subsets in longitudinal lGH repertoires"
-subtitle: "IGH subset repertoires analysis"
+title: Memory persistence and positively selected transition to antibody-secreting
+  subsets in longitudinal lGH repertoires
+subtitle: IGH subset repertoires analysis
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -9,36 +11,7 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
-#Load libraries
-Package versions used.
-          package   version
-1          seqinr     4.2.8
-2             msa    1.20.1
-3      Biostrings    2.56.0
-4         XVector    0.28.0
-5         IRanges    2.22.2
-6       S4Vectors    0.26.1
-7   BiocGenerics    0.34.0
-8         scales     1.1.1
-9 ComplexHeatmap     2.4.3
-10          edgeR    3.30.3
-11          limma    3.44.3
-12        cowplot     1.1.1
-13        rstatix     0.7.0
-14     ggbeeswarm     0.6.0
-15         ggpubr 0.4.0.999
-16       magrittr     2.0.1
-17        forcats     0.5.1
-18        stringr     1.4.0
-19          dplyr     1.0.6
-20          purrr     0.3.4
-21          readr     1.4.0
-22          tidyr     1.1.3
-23         tibble     3.1.1
-24        ggplot2     3.3.5
-25      tidyverse     1.3.0
-26     data.table    1.13.4
-R version 4.0.3 was used to run this code
+### Load libraries
 
 ```{r}
 
@@ -59,18 +32,23 @@ first=dplyr::first
 slice=dplyr::slice
 count=dplyr::count
 rename=dplyr::rename
+options(dplyr.summarise.inform = FALSE)
 ```
 
-#Package versions and R
+### Package versions and R
+R 4.0.3 was used to run this code. Package versions:
 ```{r}
-loadedPackages<-(.packages())
-packages<-tibble(package=loadedPackages,version=lapply(loadedPackages,packageVersion)  %>% lapply(as.character) %>% unlist())
-print(packages)
-getRversion()
+# loadedPackages<-(.packages())
+# packages<-data.frame(package=loadedPackages,version=lapply(loadedPackages,packageVersion)  %>% lapply(as.character) %>% unlist())
+# print("Packages in current system")
+# print(packages)
+# getRversion()
+packages_amikelov<-read.delim("package_versions.tsv")
+packages_amikelov
 ```
 
-
-# define helper functions
+<p>&nbsp;</p>
+### Define helper functions
 ```{r}
 cloneset_resample<-function(db,nUMI,idCol="id",seqIdCol="cloneId", countCol = "cloneCount", fractionCol="cloneFraction"){
   db<-db %>% filter(nUMIs>nUMI)
@@ -96,16 +74,16 @@ freq<-function(db){
 ```
 
 
-
-# Load data - original, in silico generated and naive from Gidoni et al.'19
-```{r,include=FALSE}
+<p>&nbsp;</p>
+### Load data - original, in silico generated and naive from Gidoni et al.'19
+```{r}
 subset_db<-read_tsv("IGH_subsets_db_preprocessed.tsv")
 naive_db<-read_tsv("Gidoni19_naive.tsv")
 olga_db_5k<-read_tsv("OLGA_insilico_5K.tsv")
 ```
 
-
-# Fig 1B - isotype frequencies
+<p>&nbsp;</p>
+### Fig 1B - isotype frequencies
 ```{r}
   isotype_freq<-subset_db %>% 
  # bind_rows(pbmc_db) %>% 
@@ -188,8 +166,8 @@ Fig1B<-plot_grid(Fig1B,fig1b_leg,rel_widths = c(1,0.08))
 Fig1B
 ```
 
-
-#Fig 1C - SHM rate
+<p>&nbsp;</p>
+### Fig 1C - SHM rate
 ```{r}
 # auxillary functions for statistics calculation on plot
 give.n <- function(y){
@@ -234,7 +212,8 @@ Fig1C<-subset_db %>%
 Fig1C
 ```
 
-# Fig 1D - CDR3 length
+<p>&nbsp;</p>
+### Fig 1D - CDR3 length
 ``` {r}
 
 # auxillary functions for statistics calculation on plot
@@ -277,8 +256,8 @@ Fig1D
 ```
 
 
-
-# Calculate IGHV usage tables
+<p>&nbsp;</p>
+### Calculate IGHV usage tables
 ```{r}
 vusage<-subset_db %>% 
   group_by(sampleId) %>%
@@ -304,15 +283,15 @@ de_matrix<-vusage_all_wide%>% select(-V) %>% as.matrix()
 rownames(de_matrix)<-vusage_all_wide %>% pull(V)
 ```
 
-
-#Calculate FDRs for Vsegment enrichment in Bmem/PBL/PL vs Naive
+<p>&nbsp;</p>
+### Calculate FDR for Vsegment enrichment in Bmem/PBL/PL vs Naive
 ```{r}
 
 de_matrix<-vusage_all_wide%>% select(-V) %>% as.matrix()
 rownames(de_matrix)<-vusage_all_wide %>% pull(V)
 
 de_matrix <- de_matrix[ rowMeans(de_matrix) >2, ]
-      print(dim(de_matrix))
+
       if(nrow(de_matrix)==0) {
         warning(paste(x,"No clones in matrix after filtering"))
         return()
@@ -352,9 +331,9 @@ v_de_naive_pvalue_pooled %<>%
   }) 
 ```  
 
-
-#Cluster IGH Vgenes by their nt sequence similarity
-```{r}
+<p>&nbsp;</p>
+### Cluster IGH Vgenes by their nt sequence similarity
+```{r,warning = FALSE, message = FALSE, results='hide'}
  Vs<-vusage_naive %>% 
     group_by(V) %>%
     summarise(freq=mean(freq)) %>% 
@@ -372,7 +351,8 @@ V_clusters<-hclust(d)
 
 ```
 
-# Fig 1E - IGHV gene segment frequencies and enrichment heatmap
+<p>&nbsp;</p>
+### Fig 1E - IGHV gene segment frequencies and enrichment against naive B cells heatmap
 ```{r}                   
 colors = structure(c("dodgerblue4","#B6C7DD","#E0C0D3","orchid4","white"), names = c("log2FC<-1","-1<log2FC<0","0<log2FC<1","log2FC>1","FDR>0.01"))
 
@@ -506,8 +486,10 @@ decorate_annotation("PL", {
 })
 ```
 
-# Calculate Jensen-Shannon divergence between pair of repertoires
-```{r}
+
+<p>&nbsp;</p>
+### Calculate Jensen-Shannon divergence between all pairs of repertoires
+```{r,warning = FALSE, message = FALSE}
 
 #define a function for calculation of JS divergence between repertoires of top n (nClonesThreshold) clonotypes
 
@@ -578,8 +560,9 @@ js_vusage<-
 ```
 
 
-#Fig 2A - Jensen-Shannon divergence
-```{r}
+<p>&nbsp;</p>
+### Fig 2A - Jensen-Shannon divergence of IGH repertoires
+```{r,warning = FALSE, message = FALSE}
 mycomparisons = list(combn(c("same timepoint / same donor",
                              "different timepoint / same donor",
                              "same timepoint / different donor",
@@ -632,8 +615,8 @@ cowplot::plot_grid(Fig2A_Bmem,Fig2A_PBL,Fig2A_PL, ncol = 3, rel_widths = c(1, 1,
 ```
 
 
-# Number of shared clonotypes (=clonal overlap) function definition (by aaCDR3+V+isotype)
-
+<p>&nbsp;</p>
+### Number of shared clonotypes (=clonal overlap) function definition (by aaCDR3+V+isotype)
 ```{r,warning = FALSE, message = FALSE}
 overlap<-function(db,nClonesThreshold,selectedSubpop){
 db<-db %>% filter(totalNClones>=nClonesThreshold,subpop%in%selectedSubpop)
@@ -670,8 +653,8 @@ return(overlapTable)
 }  
 ```
 
-
-#Calculate overlap for top 14000 Bmem, 600 PBL, 300 PL clonotypes (overlap by aaCDR3 +isotype)
+<p>&nbsp;</p>
+### Calculate overlap for top 14000 Bmem, 600 PBL, 300 PL clonotypes (overlap by aaCDR3 +isotype)
 ```{r,warning = FALSE, message = FALSE}
 overlapTable_Bmem<-overlap(subset_db,14000,"Bmem") %>% mutate(subpop="Bmem")
 overlapTable_PBL<-overlap(subset_db,600,"PBL") %>% mutate(subpop="PBL")
@@ -680,9 +663,9 @@ overlapTable_PL<-overlap(subset_db,300,"PL") %>% mutate(subpop="PL")
 overlapTable<-overlapTable_Bmem %>% bind_rows(overlapTable_PBL) %>% bind_rows(overlapTable_PL)
 ```
 
-
-# Fig 2B Plot overlapsr - number of shared clones for fixed # of top clonotypes in each subpopulation
-```{r}
+<p>&nbsp;</p>
+### Fig 2B Plot overlapsr - number of shared clones for fixed # of top clonotypes in each subpopulation
+```{r,warning = FALSE, message = FALSE}
 mycomparisons = list(combn(c("same timepoint / same donor",
                              "different timepoint / same donor",
                              "same timepoint / different donor",
@@ -745,25 +728,18 @@ cowplot::plot_grid(Fig2B_Bmem,Fig2B_PBL,Fig2B_PL, ncol = 3, rel_widths = c(1, 1,
 
 ```
 
-#Calculate overlaps of 5K clones - Bmem, Naive, Olga between donors
-
+<p>&nbsp;</p>
+### Calculate overlaps of 5K clones - Bmem, Naive, Olga between donors
 ```{r,warning = FALSE, message = FALSE}
 overlapTable_Bmem_5K<-overlap(subset_db,5000,"Bmem")
-
 overlapTable_Bmem_random5K<-overlap(subset_db %>% filter(subpop=="Bmem") %>% sample_n(5000),5000,"Bmem")
-
-
-#check number of naive repertoires with clone number >5000,other will be filtered out during overlap
-naive_db %>% filter(totalNClones>5000) %>% count(sampleId) %>% nrow()
-
 overlapTable_naive<-overlap(naive_db,5000,"naive")
-
 overlapTable_olga<-overlap(olga_db_5k,5000,"synth")
-
 ```
 
 
-# Fig 2C Overlaps of 5K clones,  for each pair of our donors overlaps are averaged
+<p>&nbsp;</p>
+### Fig 2C Overlaps of 5K clones,  for each pair of our donors overlaps are averaged
 ```{r,warning = FALSE, message = FALSE}
 
 crossDonor<-bind_rows(overlapTable_Bmem_5K %>% filter(donor.x!=donor.y) %>%
@@ -820,7 +796,7 @@ Fig2C
 
 ```
 
-
+<p>&nbsp;</p>
 # Fig 2D Vusage crossdonor
 ```{r}
 vusageTable_Bmem_5K<-subset_db %>% 
@@ -836,8 +812,6 @@ vusageTable_Bmem_random5K<-subset_db %>%
   calcJSVusage(5000)
 
 
-#check number of naive repertoires with clone number >5000,other will be filtered out during overlap
-naive_db %>% filter(totalNClones>5000) %>% count(sampleId) %>% nrow()
 
 vusageTable_naive<-naive_db %>%
   calcJSVusage(5000)
@@ -892,8 +866,8 @@ Fig2D<-crossDonor_vusage %>%  filter(subpop.x!="PBL",subpop.x!="PL") %>%
 Fig2D
 ```
 
-#Function to select only public clonotypes
-
+<p>&nbsp;</p>
+### Function to select only public clonotypes
 ```{r}
 overlapClones<-function(db,nClonesThreshold,selectedSubpop){
 db<-db %>% filter(totalNClones>=nClonesThreshold,subpop%in%selectedSubpop)
@@ -931,8 +905,8 @@ overlapped_clones<-overlapped_clones %>% filter(donor.x!=donor.y) %>% select(seq
 ```
 
 
-#Fig 2E - Public vs Reproduced
-
+<p>&nbsp;</p>
+### Fig 2E - Public vs Persistent
 ```{r}
 freq<-function(db){
   db %>% mutate(freq=n/sum(n))
